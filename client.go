@@ -268,7 +268,7 @@ func (c *Client) Run() error {
 	runOpts := &ebpf.RunOptions{
 		Data:   in,
 		Repeat: c.Params.BatchSize,
-		Flags:  xdp.BPF_F_TEST_XDP_LIVE_FRAMES,
+		Flags:  unix.BPF_F_TEST_XDP_LIVE_FRAMES,
 	}
 	for i := range c.Params.Parallel {
 		prog, err := c.objs.XdperfPrograms.XdpRedirectNotouch.Clone()
