@@ -33,6 +33,7 @@ var defaultClientParams = ClientParams{
 	Parallel:   1,
 	PPS:        1000,
 	BatchSize:  1,
+	Tx:         false,
 }
 
 // ClientParams holds the parameters for the xdperf application.
@@ -47,6 +48,7 @@ type ClientParams struct {
 	Parallel   int
 	PPS        uint64
 	BatchSize  uint32
+	Tx         bool
 	Device     *net.Interface
 }
 
@@ -155,6 +157,13 @@ func WithBatchSize(batchSize uint32) ClientOption {
 	}
 }
 
+// WithTx sets the client to use XDP_TX mode instead of XDP_REDIRECT.
+func WithTx(tx bool) ClientOption {
+	return func(c *Client) {
+		c.Params.Tx = tx
+	}
+}
+
 // Run starts the xdperf application with the provided parameters.
 func (c *Client) Run() error {
 	buf := gopacket.NewSerializeBuffer()
@@ -243,9 +252,16 @@ func (c *Client) Run() error {
 		return fmt.Errorf("failed to set ifidx: %w", err)
 	}
 
+	var prog *ebpf.Program
+	if c.Params.Tx {
+		prog = c.objs.XdperfPrograms.XdpTx
+	} else {
+		prog = c.objs.XdperfPrograms.XdpRedirectNotouch
+	}
+
 	// Attach XDP program using cilium/ebpf/link
 	l, err := link.AttachXDP(link.XDPOptions{
-		Program:   c.objs.XdperfPrograms.XdpRedirectNotouch,
+		Program:   prog,
 		Interface: c.Params.Device.Index,
 		Flags:     link.XDPDriverMode,
 	})
@@ -271,7 +287,7 @@ func (c *Client) Run() error {
 		Flags:  unix.BPF_F_TEST_XDP_LIVE_FRAMES,
 	}
 	for i := range c.Params.Parallel {
-		prog, err := c.objs.XdperfPrograms.XdpRedirectNotouch.Clone()
+		p, err := prog.Clone()
 		if err != nil {
 			return fmt.Errorf("failed to clone XDP program: %w", err)
 		}
@@ -279,8 +295,8 @@ func (c *Client) Run() error {
 		go func(cpu int) {
 			defer wg.Done()
 			go func() {
-				defer prog.Close()
-				if err := c.run(ctx, cpu, prog, runOpts); err != nil {
+				defer p.Close()
+				if err := c.run(ctx, cpu, p, runOpts); err != nil {
 					fmt.Printf("error in run: %v\n", err)
 				}
 			}()

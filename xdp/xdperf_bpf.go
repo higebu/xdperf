@@ -60,6 +60,7 @@ type XdperfSpecs struct {
 type XdperfProgramSpecs struct {
 	XdpCountPackets    *ebpf.ProgramSpec `ebpf:"xdp_count_packets"`
 	XdpRedirectNotouch *ebpf.ProgramSpec `ebpf:"xdp_redirect_notouch"`
+	XdpTx              *ebpf.ProgramSpec `ebpf:"xdp_tx"`
 }
 
 // XdperfMapSpecs contains maps before they are loaded into the kernel.
@@ -120,12 +121,14 @@ type XdperfVariables struct {
 type XdperfPrograms struct {
 	XdpCountPackets    *ebpf.Program `ebpf:"xdp_count_packets"`
 	XdpRedirectNotouch *ebpf.Program `ebpf:"xdp_redirect_notouch"`
+	XdpTx              *ebpf.Program `ebpf:"xdp_tx"`
 }
 
 func (p *XdperfPrograms) Close() error {
 	return _XdperfClose(
 		p.XdpCountPackets,
 		p.XdpRedirectNotouch,
+		p.XdpTx,
 	)
 }
 
