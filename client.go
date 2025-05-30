@@ -335,7 +335,7 @@ func (c *Client) run(ctx context.Context, cpu int, xdpProg *ebpf.Program, runOpt
 			}
 		}
 	} else {
-		interval := float64(float64(time.Second)*float64(c.Params.BatchSize)) / float64(c.Params.PPS)
+		interval := float64(time.Second) * float64(c.Params.BatchSize) * float64(c.Params.Parallel) / float64(c.Params.PPS)
 		ticker := time.NewTicker(time.Duration(interval))
 		defer ticker.Stop()
 		for {
